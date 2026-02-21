@@ -6,6 +6,10 @@
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-REST%20API-green)](https://flask.palletsprojects.com/)
 
+
+> [!WARNING]
+> **Work in Progress** — This project is under active development. Some features may be incomplete, use placeholder/dummy data, or behave unexpectedly. Contributions and feedback are welcome.
+
 ---
 
 ## Overview
@@ -142,7 +146,6 @@ Then edit `.env`:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_ORG_ID=your_openai_org_id_here   # optional
 ```
 
 > **Note:** The OpenAI API key can also be entered directly in the web UI within the wizard or viewer settings, without needing a `.env` file.
