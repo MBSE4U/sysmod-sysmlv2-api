@@ -1,3 +1,5 @@
+Moved to [https://github.com/Open-MBEE/sysmod-sysmlv2-api](https://github.com/Open-MBEE/sysmod-sysmlv2-api)
+
 # sysmod-sysmlv2-api
 
 > A Flask-based server and web UI for accessing and visualizing **SYSMOD** SysML v2 models via the SysML v2 API.
