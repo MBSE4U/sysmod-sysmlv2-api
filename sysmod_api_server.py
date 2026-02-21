@@ -37,6 +37,7 @@ load_dotenv() # Load environment variables from .env file
 import sysmod_api_helpers 
 import mbse4u_sysmlv2_api_helpers as mbse4u_sysmlv2
 from enum import Enum
+from pleml_api_server import pleml_blueprint, init_pleml_cache
 
 class SysmodContextKinds(Enum):
     BROWNFIELD = 'SYSMOD::Project::brownfieldSystemContext'
@@ -60,6 +61,10 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json'
 # Global SYSMOD Cache
 # Value: Dict[sysmod_element, element_data]
 SYSMOD_CACHE = {}
+
+# Register the PLeML blueprint (provides all /api/feature endpoints)
+app.register_blueprint(pleml_blueprint)
+init_pleml_cache(SYSMOD_CACHE)
 
 @app.route('/')
 def serve_index():
@@ -160,6 +165,7 @@ def api_commits():
 
     # Fetch commits using the utility function
     commits = mbse4u_sysmlv2.get_commits(server_url, project_id)
+    print(f"{len(commits)} commits found.")
     return jsonify(commits)
 
 #
@@ -417,113 +423,7 @@ def api_stakeholders():
     else:
         return None
 
-#
-# Get Feature Bindings
-#
-@app.route('/api/feature-bindings', methods=['POST'])
-@handle_errors
-def api_feature_bindings():
-    input_data = request.json
-    server_url = input_data.get('server_url')
-    project_id = input_data.get('project_id')
-    commit_id = input_data.get('commit_id')
-
-    if not all([server_url, project_id, commit_id]):
-        raise ValueError("Required parameters missing.")
-
-    bindings = sysmod_api_helpers.get_feature_bindings(server_url, project_id, commit_id)
-    return jsonify(bindings)
-
-#
-# Toggle Feature Binding (Create/Delete)
-#
-@app.route('/api/feature-bindings/toggle', methods=['POST'])
-@handle_errors
-def api_feature_bindings_toggle():
-    input_data = request.json
-    server_url = input_data.get('server_url')
-    project_id = input_data.get('project_id')
-    commit_id = input_data.get('commit_id')
-    client_id = input_data.get('client_id')
-    supplier_id = input_data.get('supplier_id')
-    binding_id = input_data.get('binding_id')
-    
-    if binding_id:
-        # Delete using the provided ID
-        success = sysmod_api_helpers.delete_feature_binding(server_url, project_id, commit_id, binding_id)
-        return jsonify({"action": "deleted", "success": success})
-    else:
-        # Create
-        new_id = sysmod_api_helpers.create_feature_binding(server_url, project_id, commit_id, client_id, supplier_id)
-        return jsonify({"action": "created", "id": new_id, "success": True if new_id else False})
-
-@app.route('/api/feature-tree-uvl', methods=['POST'])
-@handle_errors
-def api_feature_tree_uvl():
-    data = request.json
-    server_url = data.get('server_url')
-    project_id = data.get('project_id')
-    commit_id = data.get('commit_id')
-    sysmod_project_id = data.get('sysmod_project_id')
-    
-    print(f"/api/feature-tree_uvl called with data: {data}")
-
-    if 'FEATURETREEUVL' in SYSMOD_CACHE:
-        return jsonify(SYSMOD_CACHE['FEATURETREEUVL'])
-    
-    if not all([server_url, project_id, commit_id, sysmod_project_id]):
-         return jsonify({"error": "Missing parameters"}), 400
-
-    result = sysmod_api_helpers.get_feature_tree_uvl(server_url, project_id, commit_id, sysmod_project_id)
-    SYSMOD_CACHE['FEATURETREEUVL'] = result
-    if result:
-        return jsonify(result)
-    else:
-        return None
-
-@app.route('/api/feature-tree-sysml', methods=['POST'])
-def api_feature_tree_sysml():
-    data = request.json
-    print(f"/api/feature-tree-sysml called with data: {data}")
-
-    if 'FEATURETREESYSML' in SYSMOD_CACHE:
-        return jsonify(SYSMOD_CACHE['FEATURETREESYSML'])
-
-    # Dummy Matrix Data
-    # Columns: Feature Name, Config 1, Config 2, ...
-    headers = ["Feature", "Standard", "Premium", "Sport"]
-    
-    matrix_rows = [
-        {"name": "Vehicle", "values": ["Selected", "Selected", "Selected"]},
-        {"name": "Engine", "values": ["Selected", "Selected", "Selected"]},
-        {"name": "Electric", "values": ["Unselected", "Selected", "Unselected"]},
-        {"name": "Gasoline", "values": ["Selected", "Unselected", "Selected"]},
-        {"name": "Infotainment", "values": ["Unselected", "Selected", "Selected"]}
-    ]
-
-    # Dummy Tree Code (Mermaid) for visualization
-    # Ideally this matches the matrix structure
-    graph_code = """graph TD
-    Vehicle --> Engine
-    Vehicle --> Infotainment
-    Engine --> Electric
-    Engine --> Gasoline
-    style Electric fill:#bbf,stroke:#333,stroke-width:2px
-    style Gasoline stroke-dasharray: 5 5
-    """
-    result = {
-        "matrix": {
-            "headers": headers,
-            "rows": matrix_rows
-        },
-        "graph_code": graph_code
-    }
-    SYSMOD_CACHE['FEATURETREESYSML'] = result
-
-    if result:
-        return jsonify(result)
-    else:
-        return None
+# /api/feature endpoints are provided by pleml_api_server.py (pleml_blueprint)
 
 @app.route('/api/quality-checks', methods=['POST'])
 def api_quality_checks():
